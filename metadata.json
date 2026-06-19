@@ -1,0 +1,6 @@
+{
+  "name": "Harmonogram CAS",
+  "description": "Interactive Gantt chart for tracking the CAS Project production schedule.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -18,6 +18,14 @@ export function GanttChart() {
   const [data, setData] = useState(scheduleData);
   const [celebration, setCelebration] = useState<{id: string, ts: number} | null>(null);
   
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('gantt_filters');
+      if (stored) return new Set(JSON.parse(stored));
+    } catch(e) {}
+    return new Set();
+  });
+
   useEffect(() => {
     const docRef = doc(db, 'gantt', 'schedule');
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
@@ -29,7 +37,13 @@ export function GanttChart() {
     });
     return () => unsubscribe();
   }, []);
-  const [hiddenWeeks, setHiddenWeeks] = useState<Set<string>>(new Set());
+  const [hiddenWeeks, setHiddenWeeks] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('gantt_hidden_weeks');
+      if (stored) return new Set(JSON.parse(stored));
+    } catch(e) {}
+    return new Set();
+  });
   
   const timelineStart = new Date('2026-05-18');
   const timelineEnd = new Date('2026-10-31');
@@ -120,33 +134,91 @@ export function GanttChart() {
         const next = new Set(prev);
         if (next.has(weekName)) next.delete(weekName);
         else next.add(weekName);
+        localStorage.setItem('gantt_hidden_weeks', JSON.stringify(Array.from(next)));
         return next;
      });
   };
 
-  const toggleTaskCompletion = (mIndex: number, tIndex: number) => {
-      const newData = [...data];
-      const task = newData[mIndex].tasks[tIndex];
-      task.isCompleted = !task.isCompleted;
-      
-      if (task.isCompleted) {
-         setCelebration({ id: task.id, ts: Date.now() });
-      }
-      
+  const filteredData = useMemo(() => {
+    if (activeFilters.size === 0) return data;
+    return data.map(module => ({
+      ...module,
+      tasks: module.tasks.filter(t => activeFilters.has(t.type))
+    })).filter(module => module.tasks.length > 0);
+  }, [data, activeFilters]);
+
+  const toggleTaskCompletion = (taskId: string) => {
+      const newData = data.map(m => ({
+          ...m,
+          tasks: m.tasks.map(t => {
+              if (t.id === taskId) {
+                  const newStatus = !t.isCompleted;
+                  if (newStatus) setCelebration({ id: t.id, ts: Date.now() });
+                  return { ...t, isCompleted: newStatus };
+              }
+              return t;
+          })
+      }));
       setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
   };
   
-  const updateCorrectionDate = (mIndex: number, tIndex: number, newDate: string) => {
-      const newData = [...data];
-      newData[mIndex].tasks[tIndex].correctionDate = newDate;
+  const updateCorrectionDate = (taskId: string, newDate: string) => {
+      const newData = data.map(m => ({
+          ...m,
+          tasks: m.tasks.map(t => {
+              if (t.id === taskId) {
+                  return { ...t, correctionDate: newDate };
+              }
+              return t;
+          })
+      }));
       setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
   };
 
   const currentDateStr = formatISO(currentDate);
+
+  const filterOptions = [
+    { id: 'purchase', label: 'Steel purchase' },
+    { id: 'cutting', label: 'Steel cutting' },
+    { id: 'assembly', label: 'Assembly' },
+    { id: 'welding', label: 'Welding' },
+    { id: 'painting', label: 'Painting' },
+    { id: 'shipment', label: 'Shipment' }
+  ];
+
+  const toggleFilter = (typeId: string) => {
+     setActiveFilters(prev => {
+        const next = new Set(prev);
+        if (next.has(typeId)) next.delete(typeId);
+        else next.add(typeId);
+        localStorage.setItem('gantt_filters', JSON.stringify(Array.from(next)));
+        return next;
+     });
+  };
   const currentDayInfo = dayCoordMap.get(currentDateStr);
 
   return (
     <div className="flex flex-col h-full w-full bg-white overflow-hidden text-sm relative">
+      <div className="flex items-center gap-4 px-4 py-3 border-b border-slate-200 bg-slate-50 shrink-0">
+        <span className="font-semibold text-slate-700">Filter View:</span>
+        <div className="flex flex-wrap gap-3">
+           {filterOptions.map(opt => (
+             <label key={opt.id} className="flex items-center gap-1.5 cursor-pointer text-slate-600 hover:text-slate-900 transition-colors">
+               <input type="checkbox" checked={activeFilters.has(opt.id)} onChange={() => toggleFilter(opt.id)} className="rounded border-slate-300 text-rose-500 focus:ring-rose-500" />
+               <span className="text-[13px] font-medium">{opt.label}</span>
+             </label>
+           ))}
+        </div>
+        <div className="ml-auto">
+           {activeFilters.size > 0 && (
+              <button onClick={() => {
+                const next = new Set<string>();
+                setActiveFilters(next);
+                localStorage.setItem('gantt_filters', JSON.stringify(Array.from(next)));
+              }} className="text-xs text-slate-500 hover:text-slate-700 underline">Clear Filters</button>
+           )}
+        </div>
+      </div>
       <div className="flex-1 overflow-auto focus:outline-none custom-scrollbar" tabIndex={0}>
         <div className="inline-block min-w-full h-max relative align-top">
             
@@ -247,18 +319,19 @@ export function GanttChart() {
                {/* Left Body - Sticky Left horizontally */}
              <div className="w-[480px] flex-shrink-0 bg-white border-r border-slate-300 sticky left-0 z-[50] shadow-[2px_0_10px_rgba(0,0,0,0.05)] flex flex-col">
                 <div className="w-full flex-col flex bg-white">
-                  {data.map((module, mIdx) => (
+                  {filteredData.map((module) => (
                     <div key={module.id} className="border-b-[4px] border-slate-200 last:border-b-0 flex">
                       <div className="w-[140px] px-2 py-2 font-bold flex items-center bg-white border-r text-[12px] leading-tight flex-shrink-0">
                         {module.name}
                       </div>
                       <div className="flex-1 divide-y divide-slate-200 flex flex-col">
-                        {module.tasks.map((task, tIdx) => {
+                        {module.tasks.map((task) => {
+                          const isCompleted = task.isCompleted || false;
                           let bgClass = "bg-white";
                           let textClass = "text-slate-800";
                           let borderClass = "border-slate-200";
                           
-                          if (task.isCompleted) {
+                          if (isCompleted) {
                              bgClass = "bg-slate-300";
                              borderClass = "border-slate-400";
                              textClass = "text-slate-600";
@@ -281,20 +354,20 @@ export function GanttChart() {
                                 type="date" 
                                 className="w-full text-center bg-transparent focus:outline-none font-mono text-[10px] text-slate-600 hover:bg-slate-100 p-1 rounded" 
                                 value={task.correctionDate || ''}
-                                onChange={(e) => updateCorrectionDate(mIdx, tIdx, e.target.value)}
+                                onChange={(e) => updateCorrectionDate(task.id, e.target.value)}
                                 placeholder="Y-M-D"
                               />
                             </div>
                             <div className="px-2 py-1 text-xs text-center flex items-center justify-center bg-white">
                                <button 
-                                 onClick={() => toggleTaskCompletion(mIdx, tIdx)}
+                                 onClick={() => toggleTaskCompletion(task.id)}
                                  className={`w-16 h-5 rounded flex items-center justify-center font-bold text-[10px] transition-colors border ${
-                                   task.isCompleted 
+                                   isCompleted 
                                      ? 'bg-green-100 text-green-700 border-green-300 hover:bg-green-200' 
                                      : 'bg-slate-100 text-slate-400 border-slate-300 hover:bg-slate-200 hover:text-slate-600'
                                  }`}
                                >
-                                 {task.isCompleted ? 'OK' : 'Waiting'}
+                                 {isCompleted ? 'OK' : 'Waiting'}
                                </button>
                             </div>
                           </div>
@@ -339,7 +412,7 @@ export function GanttChart() {
 
                 {/* Task Rows */}
                 <div className="relative w-full flex flex-col z-10">
-                   {data.map((module) => (
+                   {filteredData.map((module) => (
                      <div key={module.id} className="border-b-[4px] border-slate-200 last:border-b-0 divide-y divide-slate-200">
                          {module.tasks.map((task) => {
                              const tStart = parseISODate(task.startDate);
@@ -364,11 +437,12 @@ export function GanttChart() {
                              let taskWidth = (eInfo.x + eInfo.width) - taskX;
 
                              // Visual Styling
+                             const isCompleted = task.isCompleted || false;
                              let bgClass = "bg-slate-400";
                              let borderClass = "border-slate-500";
                              let textClass = "text-slate-800";
 
-                             if (task.isCompleted) {
+                             if (isCompleted) {
                                bgClass = 'bg-slate-300';
                                borderClass = 'border-slate-400';
                                textClass = 'text-slate-600';
@@ -383,7 +457,7 @@ export function GanttChart() {
 
                              // Calculate Countdown Logic from real end target
                              const daysRemaining = differenceInDaysSigned(tEnd, currentDate);
-                             const pastDue = !task.isCompleted && daysRemaining < 0;
+                             const pastDue = !isCompleted && daysRemaining < 0;
                              const counterText = `${daysRemaining}`;
 
                              return (
@@ -399,7 +473,7 @@ export function GanttChart() {
                                              <span>S</span>
                                              <div className="flex gap-1 items-center">
                                                <span>D</span>
-                                               {task.isCompleted ? (
+                                               {isCompleted ? (
                                                  <div className="flex bg-white/80 rounded-[2px] shadow-sm py-[1px] px-[2px] text-green-600">
                                                    <Check className="w-[10px] h-[10px]" strokeWidth={3} />
                                                  </div>
@@ -412,7 +486,7 @@ export function GanttChart() {
                                           </div>
                                        ) : (
                                          <div className="w-full flex justify-end px-1 items-center relative h-full">
-                                           {task.isCompleted ? (
+                                           {isCompleted ? (
                                              <div className="flex bg-white/80 rounded-[2px] shadow-sm py-[1px] px-[2px] text-green-600">
                                                <Check className="w-[10px] h-[10px]" strokeWidth={3} />
                                              </div>

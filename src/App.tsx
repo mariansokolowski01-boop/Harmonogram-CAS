@@ -12,7 +12,7 @@ export default function App() {
 
   const handleShare = async () => {
     try {
-      await navigator.clipboard.writeText('https://harmonogram-jb6es4irk-team-effort.vercel.app');
+      await navigator.clipboard.writeText('https://harmonogram-cas.vercel.app');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {

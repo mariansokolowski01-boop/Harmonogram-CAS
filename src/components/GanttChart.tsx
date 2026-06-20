@@ -466,7 +466,7 @@ export function GanttChart() {
                                        className={`absolute top-[5px] h-[20px] shadow-sm rounded-[2px] border ${bgClass} ${borderClass} flex items-center justify-between font-bold text-[10px] ${textClass} focus:outline-none focus:ring-2 focus:ring-blue-400 z-10 transition-all cursor-pointer hover:shadow-md`}
                                        style={{ left: taskX, width: Math.max(taskWidth, 20) }}
                                        title={`${task.name}: ${task.startDate} to ${endTargetStr}`}
-                                       onClick={() => toggleTaskCompletion(data.indexOf(module), module.tasks.indexOf(task))}
+                                       onClick={() => toggleTaskCompletion(task.id)}
                                      >
                                        {task.type === 'shipment' ? (
                                           <div className="w-full flex justify-between px-1 h-full items-center relative overflow-hidden">

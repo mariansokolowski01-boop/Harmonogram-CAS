@@ -17,6 +17,8 @@ export function GanttChart() {
   const currentDate = new Date();
   const [data, setData] = useState(scheduleData);
   const [celebration, setCelebration] = useState<{id: string, ts: number} | null>(null);
+  const [jokeMessage, setJokeMessage] = useState<string | null>(null);
+  const [rocketClicks, setRocketClicks] = useState<number[]>([]);
   
   const [activeFilters, setActiveFilters] = useState<Set<string>>(() => {
     try {
@@ -156,6 +158,17 @@ export function GanttChart() {
                   if (newStatus) {
                       setCelebration({ id: t.id, ts: Date.now() });
                       setTimeout(() => setCelebration(null), 2000);
+                      
+                      const now = Date.now();
+                      setRocketClicks(prev => {
+                          const recent = prev.filter(time => now - time < 30000);
+                          const updated = [...recent, now];
+                          if (updated.length === 5) {
+                              setJokeMessage("🚀 Houston, mamy problem! Budżet na paliwo rakietowe wyczerpany. Wracamy do szlifowania stali! 🚀");
+                              setTimeout(() => setJokeMessage(null), 5000);
+                          }
+                          return updated;
+                      });
                   }
                   return { ...t, isCompleted: newStatus };
               }
@@ -202,6 +215,19 @@ export function GanttChart() {
 
   return (
     <div className="flex flex-col h-full w-full bg-white overflow-hidden text-sm relative">
+      <AnimatePresence>
+        {jokeMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="fixed top-20 left-1/2 bg-slate-800 text-white px-6 py-4 rounded-xl shadow-2xl z-[100] font-bold text-center border-2 border-slate-700 max-w-lg w-full flex items-center justify-center gap-3"
+          >
+            <span>{jokeMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="flex items-center gap-4 px-4 py-3 border-b border-slate-200 bg-slate-50 shrink-0">
         <span className="font-semibold text-slate-700">Filter View:</span>
         <div className="flex flex-wrap gap-3">

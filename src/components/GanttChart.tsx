@@ -153,7 +153,10 @@ export function GanttChart() {
           tasks: m.tasks.map(t => {
               if (t.id === taskId) {
                   const newStatus = !t.isCompleted;
-                  if (newStatus) setCelebration({ id: t.id, ts: Date.now() });
+                  if (newStatus) {
+                      setCelebration({ id: t.id, ts: Date.now() });
+                      setTimeout(() => setCelebration(null), 2000);
+                  }
                   return { ...t, isCompleted: newStatus };
               }
               return t;

@@ -315,16 +315,42 @@ export function GanttChart() {
           </div>
 
           {/* BODY ROW */}
-          <div className="flex relative bg-white pb-10 w-fit min-w-full">
-               {/* Left Body - Sticky Left horizontally */}
-             <div className="w-[480px] flex-shrink-0 bg-white border-r border-slate-300 sticky left-0 z-[50] shadow-[2px_0_10px_rgba(0,0,0,0.05)] flex flex-col">
-                <div className="w-full flex-col flex bg-white">
-                  {filteredData.map((module) => (
-                    <div key={module.id} className="border-b-[4px] border-slate-200 last:border-b-0 flex">
+          <div className="flex flex-col relative bg-white pb-10 w-fit min-w-full">
+            
+             {/* Background Grid Lines & Current Day Marker */}
+             <div className="absolute top-0 bottom-0 pointer-events-none z-0" style={{ left: 480, width: totalWidth }}>
+                {currentDayInfo && !currentDayInfo.isCollapsed && (
+                   <div 
+                     className="absolute top-0 bottom-0 z-30 border-l-[2px] border-rose-500 border-dashed pointer-events-none"
+                     style={{ left: currentDayInfo.x + (colWidth / 2) }}
+                   />
+                )}
+                <div className="absolute inset-0 flex pointer-events-none z-0">
+                  {weeks.map((w, wi) => {
+                     if (w.isCollapsed) {
+                       return <div key={wi} style={{ width: w.width }} className="border-r border-slate-200 bg-slate-50/50 flex-shrink-0" />
+                     }
+                     return w.days.map((d, di) => {
+                       const isWeekend = d.date.getDay() === 0 || d.date.getDay() === 6;
+                       return (
+                         <div key={`${wi}-${di}`} style={{ width: colWidth }} className={`border-r border-slate-200 h-full flex-shrink-0 ${isWeekend ? 'bg-slate-50/50' : ''}`} />
+                       )
+                     });
+                  })}
+                </div>
+             </div>
+
+             {/* Task Rows */}
+             <div className="relative w-full flex flex-col z-10">
+                {filteredData.map((module) => (
+                  <div key={module.id} className="flex border-b-[4px] border-slate-200 last:border-b-0 w-full relative">
+                    
+                    {/* Left Part - Sticky Left horizontally */}
+                    <div className="w-[480px] flex-shrink-0 bg-white border-r border-slate-300 sticky left-0 z-[50] shadow-[2px_0_10px_rgba(0,0,0,0.05)] flex">
                       <div className="w-[140px] px-2 py-2 font-bold flex items-center bg-white border-r text-[12px] leading-tight flex-shrink-0">
                         {module.name}
                       </div>
-                      <div className="flex-1 divide-y divide-slate-200 flex flex-col">
+                      <div className="flex-1 divide-y divide-slate-200 flex flex-col justify-start">
                         {module.tasks.map((task) => {
                           const isCompleted = task.isCompleted || false;
                           let bgClass = "bg-white";
@@ -345,14 +371,14 @@ export function GanttChart() {
                            }
      
                            return (
-                           <div key={task.id} className="grid grid-cols-[160px_90px_90px] divide-x divide-slate-200 h-[30px] hover:bg-slate-50 transition-colors">
+                           <div key={task.id} className="grid grid-cols-[160px_90px_90px] divide-x divide-slate-200 h-[30px] hover:bg-slate-50 transition-colors flex-shrink-0">
                              <div className={`px-2 py-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis flex items-center border-[1px] border-l-0 ${borderClass} font-medium ${bgClass} ${textClass} bg-opacity-70`} title={task.name}>
                                {task.name}
                              </div>
-                            <div className="px-1 py-1 text-xs text-center flex items-center justify-center bg-white">
+                            <div className="px-1 py-1 text-xs text-center flex items-center justify-center bg-white min-w-0 overflow-hidden">
                               <input 
                                 type="date" 
-                                className="w-full text-center bg-transparent focus:outline-none font-mono text-[10px] text-slate-600 hover:bg-slate-100 p-1 rounded" 
+                                className="w-full min-w-0 max-w-full text-center bg-transparent focus:outline-none font-mono text-[10px] text-slate-600 hover:bg-slate-100 p-1 rounded" 
                                 value={task.correctionDate || ''}
                                 onChange={(e) => updateCorrectionDate(task.id, e.target.value)}
                                 placeholder="Y-M-D"
@@ -374,155 +400,125 @@ export function GanttChart() {
                         )})}
                       </div>
                     </div>
-                  ))}
-                </div>
-                {/* Fill empty space with left grid lines */}
-                <div className="flex-1 w-full bg-white" style={{ backgroundImage: 'linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)', backgroundSize: '100% 30px' }}>
+
+                    {/* Right Part - Gantt Chart Canvas */}
+                    <div className="relative flex flex-col justify-start bg-transparent flex-shrink-0 divide-y divide-slate-200" style={{ width: totalWidth }}>
+                        {module.tasks.map((task) => {
+                            const tStart = parseISODate(task.startDate);
+                            const endTargetStr = task.correctionDate || task.endDate;
+                            const tEnd = parseISODate(endTargetStr);
+                            
+                            const s = tStart <= tEnd ? tStart : tEnd;
+                            const e = tStart <= tEnd ? tEnd : tStart;
+                            
+                            const isTaskInRange = s <= timelineEnd && e >= timelineStart;
+                            if (!isTaskInRange) return <div key={task.id} className="h-[30px] hover:bg-slate-50/30 w-full flex-shrink-0" />;
+
+                            const clampS = s < timelineStart ? timelineStart : s;
+                            const clampE = e > timelineEnd ? timelineEnd : e;
+                            
+                            const sInfo = dayCoordMap.get(formatISO(clampS));
+                            const eInfo = dayCoordMap.get(formatISO(clampE));
+                            
+                            if (!sInfo || !eInfo) return <div key={task.id} className="h-[30px] w-full flex-shrink-0" />;
+
+                            let taskX = sInfo.x;
+                            let taskWidth = (eInfo.x + eInfo.width) - taskX;
+
+                            // Visual Styling
+                            const isCompleted = task.isCompleted || false;
+                            let bgClass = "bg-slate-400";
+                            let borderClass = "border-slate-500";
+                            let textClass = "text-slate-800";
+
+                            if (isCompleted) {
+                              bgClass = 'bg-slate-300';
+                              borderClass = 'border-slate-400';
+                              textClass = 'text-slate-600';
+                            } else {
+                              if (task.type === 'purchase') { bgClass = 'bg-[#ffc000]'; borderClass = 'border-[#e6ad00]'; textClass = 'text-slate-900'; }
+                              if (task.type === 'cutting') { bgClass = 'bg-teal-200'; borderClass = 'border-teal-400'; textClass = 'text-slate-900'; }
+                              if (task.type === 'assembly') { bgClass = 'bg-[#ffff00]'; borderClass = 'border-[#e6e600]'; textClass = 'text-slate-900'; }
+                              if (task.type === 'welding') { bgClass = 'bg-[#f4ce84]'; borderClass = 'border-[#e0b060]'; textClass = 'text-slate-900'; }
+                              if (task.type === 'painting') { bgClass = 'bg-[#9bc2e6]'; borderClass = 'border-[#8eb2d4]'; textClass = 'text-slate-900'; }
+                              if (task.type === 'shipment') { bgClass = 'bg-[#a9d08e]'; borderClass = 'border-[#96ba7f]'; textClass = 'text-slate-900'; }
+                            }
+
+                            // Calculate Countdown Logic from real end target
+                            const daysRemaining = differenceInDaysSigned(tEnd, currentDate);
+                            const pastDue = !isCompleted && daysRemaining < 0;
+                            const counterText = `${daysRemaining}`;
+
+                            return (
+                              <div key={task.id} className="h-[30px] relative group hover:bg-slate-50/50 transition-colors w-full flex-shrink-0">
+                                    <div 
+                                      className={`absolute top-[5px] h-[20px] shadow-sm rounded-[2px] border ${bgClass} ${borderClass} flex items-center justify-between font-bold text-[10px] ${textClass} focus:outline-none focus:ring-2 focus:ring-blue-400 z-10 transition-all cursor-pointer hover:shadow-md`}
+                                      style={{ left: taskX, width: Math.max(taskWidth, 20) }}
+                                      title={`${task.name}: ${task.startDate} to ${endTargetStr}`}
+                                      onClick={() => toggleTaskCompletion(task.id)}
+                                    >
+                                      {task.type === 'shipment' ? (
+                                         <div className="w-full flex justify-between px-1 h-full items-center relative overflow-hidden">
+                                            <span>S</span>
+                                            <div className="flex gap-1 items-center">
+                                              <span>D</span>
+                                              {isCompleted ? (
+                                                <div className="flex bg-white/80 rounded-[2px] shadow-sm py-[1px] px-[2px] text-green-600">
+                                                  <Check className="w-[10px] h-[10px]" strokeWidth={3} />
+                                                </div>
+                                              ) : (
+                                                <div className={`px-1 rounded-[2px] bg-white/80 shadow-sm leading-none py-[2px] ${pastDue ? 'text-red-700 font-extrabold' : 'text-slate-800'}`}>
+                                                   {counterText}
+                                                </div>
+                                              )}
+                                            </div>
+                                         </div>
+                                      ) : (
+                                        <div className="w-full flex justify-end px-1 items-center relative h-full">
+                                          {isCompleted ? (
+                                            <div className="flex bg-white/80 rounded-[2px] shadow-sm py-[1px] px-[2px] text-green-600">
+                                              <Check className="w-[10px] h-[10px]" strokeWidth={3} />
+                                            </div>
+                                          ) : (
+                                            <div className={`px-1 rounded-[2px] bg-white/80 shadow-sm leading-none py-[2px] ${pastDue ? 'text-red-700 font-extrabold' : 'text-slate-800'}`}>
+                                              {counterText}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                      
+                                      <AnimatePresence>
+                                         {celebration?.id === task.id && (
+                                           <motion.div
+                                              key={celebration.ts}
+                                              initial={{ opacity: 1, y: 0, x: 0, scale: 0.5 }}
+                                              animate={{ opacity: [1, 1, 0], y: [0, -50, -100], x: [0, 30, 60], scale: [0.8, 1.5, 1.5] }}
+                                              exit={{ opacity: 0 }}
+                                              transition={{ duration: 1.2, ease: "easeOut" }}
+                                              className="absolute right-[-10px] top-[-15px] text-3xl pointer-events-none z-50 drop-shadow-md"
+                                           >
+                                              🚀
+                                           </motion.div>
+                                         )}
+                                      </AnimatePresence>
+                                    </div>
+                              </div>
+                            );
+                        })}
+                    </div>
+
+                  </div>
+                ))}
+             </div>
+
+             {/* Fill empty space with left grid lines */}
+             <div className="flex-1 w-full flex bg-transparent flex-shrink-0 z-0 relative">
+                <div className="w-[480px] sticky left-0 border-r border-slate-300 z-50 bg-white" style={{ backgroundImage: 'linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)', backgroundSize: '100% 30px' }}>
                    <div className="w-full h-full grid grid-cols-[140px_160px_90px_90px] divide-x divide-slate-200 pointer-events-none">
                       <div /><div /><div /><div />
                    </div>
                 </div>
              </div>
-  
-             {/* Right Body - Calendar Rows and Canvas */}
-             <div className="relative bg-white flex flex-col pt-[0px]" style={{ width: totalWidth }}>
-                
-                {/* CURRENT DAY MARKER BODY */}
-                {currentDayInfo && !currentDayInfo.isCollapsed && (
-                   <div 
-                     className="absolute top-0 bottom-0 z-30 border-l-[2px] border-rose-500 border-dashed pointer-events-none"
-                     style={{ left: currentDayInfo.x + (colWidth / 2) }}
-                   />
-                )}
-
-                {/* Vertical grid lines */}
-                <div className="absolute inset-0 flex pointer-events-none z-0">
-                  {weeks.map((w, wi) => {
-                     if (w.isCollapsed) {
-                       return <div key={wi} style={{ width: w.width }} className="border-r border-slate-200 bg-slate-50/50 flex-shrink-0" />
-                     }
-                     return w.days.map((d, di) => {
-                       const isWeekend = d.date.getDay() === 0 || d.date.getDay() === 6;
-                       return (
-                         <div key={`${wi}-${di}`} style={{ width: colWidth }} className={`border-r border-slate-200 h-full flex-shrink-0 ${isWeekend ? 'bg-slate-50/50' : ''}`} />
-                       )
-                     });
-                  })}
-                </div>
-
-                {/* Task Rows */}
-                <div className="relative w-full flex flex-col z-10">
-                   {filteredData.map((module) => (
-                     <div key={module.id} className="border-b-[4px] border-slate-200 last:border-b-0 divide-y divide-slate-200">
-                         {module.tasks.map((task) => {
-                             const tStart = parseISODate(task.startDate);
-                             const endTargetStr = task.correctionDate || task.endDate;
-                             const tEnd = parseISODate(endTargetStr);
-                             
-                             const s = tStart <= tEnd ? tStart : tEnd;
-                             const e = tStart <= tEnd ? tEnd : tStart;
-                             
-                             const isTaskInRange = s <= timelineEnd && e >= timelineStart;
-                             if (!isTaskInRange) return <div key={task.id} className="h-[30px] hover:bg-slate-50/30 w-full" />;
-
-                             const clampS = s < timelineStart ? timelineStart : s;
-                             const clampE = e > timelineEnd ? timelineEnd : e;
-                             
-                             const sInfo = dayCoordMap.get(formatISO(clampS));
-                             const eInfo = dayCoordMap.get(formatISO(clampE));
-                             
-                             if (!sInfo || !eInfo) return <div key={task.id} className="h-[30px] w-full" />;
-
-                             let taskX = sInfo.x;
-                             let taskWidth = (eInfo.x + eInfo.width) - taskX;
-
-                             // Visual Styling
-                             const isCompleted = task.isCompleted || false;
-                             let bgClass = "bg-slate-400";
-                             let borderClass = "border-slate-500";
-                             let textClass = "text-slate-800";
-
-                             if (isCompleted) {
-                               bgClass = 'bg-slate-300';
-                               borderClass = 'border-slate-400';
-                               textClass = 'text-slate-600';
-                             } else {
-                               if (task.type === 'purchase') { bgClass = 'bg-[#ffc000]'; borderClass = 'border-[#e6ad00]'; textClass = 'text-slate-900'; }
-                               if (task.type === 'cutting') { bgClass = 'bg-teal-200'; borderClass = 'border-teal-400'; textClass = 'text-slate-900'; }
-                               if (task.type === 'assembly') { bgClass = 'bg-[#ffff00]'; borderClass = 'border-[#e6e600]'; textClass = 'text-slate-900'; }
-                               if (task.type === 'welding') { bgClass = 'bg-[#f4ce84]'; borderClass = 'border-[#e0b060]'; textClass = 'text-slate-900'; }
-                               if (task.type === 'painting') { bgClass = 'bg-[#9bc2e6]'; borderClass = 'border-[#8eb2d4]'; textClass = 'text-slate-900'; }
-                               if (task.type === 'shipment') { bgClass = 'bg-[#a9d08e]'; borderClass = 'border-[#96ba7f]'; textClass = 'text-slate-900'; }
-                             }
-
-                             // Calculate Countdown Logic from real end target
-                             const daysRemaining = differenceInDaysSigned(tEnd, currentDate);
-                             const pastDue = !isCompleted && daysRemaining < 0;
-                             const counterText = `${daysRemaining}`;
-
-                             return (
-                               <div key={task.id} className="h-[30px] relative group hover:bg-slate-50/50 transition-colors w-full">
-                                     <div 
-                                       className={`absolute top-[5px] h-[20px] shadow-sm rounded-[2px] border ${bgClass} ${borderClass} flex items-center justify-between font-bold text-[10px] ${textClass} focus:outline-none focus:ring-2 focus:ring-blue-400 z-10 transition-all cursor-pointer hover:shadow-md`}
-                                       style={{ left: taskX, width: Math.max(taskWidth, 20) }}
-                                       title={`${task.name}: ${task.startDate} to ${endTargetStr}`}
-                                       onClick={() => toggleTaskCompletion(task.id)}
-                                     >
-                                       {task.type === 'shipment' ? (
-                                          <div className="w-full flex justify-between px-1 h-full items-center relative overflow-hidden">
-                                             <span>S</span>
-                                             <div className="flex gap-1 items-center">
-                                               <span>D</span>
-                                               {isCompleted ? (
-                                                 <div className="flex bg-white/80 rounded-[2px] shadow-sm py-[1px] px-[2px] text-green-600">
-                                                   <Check className="w-[10px] h-[10px]" strokeWidth={3} />
-                                                 </div>
-                                               ) : (
-                                                 <div className={`px-1 rounded-[2px] bg-white/80 shadow-sm leading-none py-[2px] ${pastDue ? 'text-red-700 font-extrabold' : 'text-slate-800'}`}>
-                                                   {counterText}
-                                                 </div>
-                                               )}
-                                             </div>
-                                          </div>
-                                       ) : (
-                                         <div className="w-full flex justify-end px-1 items-center relative h-full">
-                                           {isCompleted ? (
-                                             <div className="flex bg-white/80 rounded-[2px] shadow-sm py-[1px] px-[2px] text-green-600">
-                                               <Check className="w-[10px] h-[10px]" strokeWidth={3} />
-                                             </div>
-                                           ) : (
-                                             <div className={`px-1 rounded-[2px] bg-white/80 shadow-sm leading-none py-[2px] ${pastDue ? 'text-red-700 font-extrabold' : 'text-slate-800'}`}>
-                                               {counterText}
-                                             </div>
-                                           )}
-                                         </div>
-                                       )}
-                                       
-                                       <AnimatePresence>
-                                          {celebration?.id === task.id && (
-                                            <motion.div
-                                               key={celebration.ts}
-                                               initial={{ opacity: 1, y: 0, x: 0, scale: 0.5 }}
-                                               animate={{ opacity: [1, 1, 0], y: [0, -50, -100], x: [0, 30, 60], scale: [0.8, 1.5, 1.5] }}
-                                               exit={{ opacity: 0 }}
-                                               transition={{ duration: 1.2, ease: "easeOut" }}
-                                               className="absolute right-[-10px] top-[-15px] text-3xl pointer-events-none z-50 drop-shadow-md"
-                                            >
-                                               🚀
-                                            </motion.div>
-                                          )}
-                                       </AnimatePresence>
-                                     </div>
-                               </div>
-                             );
-                         })}
-                     </div>
-                   ))}
-                </div>
-                {/* Empty grid space */}
-                <div className="flex-1 w-full" style={{ backgroundImage: 'linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)', backgroundSize: '100% 28px' }} />
-             </div>
-
           </div>
         </div>
       </div>

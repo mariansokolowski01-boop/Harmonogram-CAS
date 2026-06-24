@@ -191,6 +191,23 @@ export function GanttChart() {
       setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
   };
 
+  const updateTaskProgress = (taskId: string, progress: number | null) => {
+      const newData = data.map(m => ({
+          ...m,
+          tasks: m.tasks.map(t => {
+              if (t.id === taskId) {
+                  if (progress === null) {
+                      const { progress: _, ...rest } = t;
+                      return { ...rest, progress: null };
+                  }
+                  return { ...t, progress };
+              }
+              return t;
+          })
+      }));
+      setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
+  };
+
   const currentDateStr = formatISO(currentDate);
 
   const filterOptions = [
@@ -401,8 +418,32 @@ export function GanttChart() {
      
                            return (
                            <div key={task.id} className="grid grid-cols-[160px_90px_90px] divide-x divide-slate-200 h-[30px] hover:bg-slate-50 transition-colors flex-shrink-0">
-                             <div className={`px-2 py-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis flex items-center border-[1px] border-l-0 ${borderClass} font-medium ${bgClass} ${textClass} bg-opacity-70`} title={task.name}>
-                               {task.name}
+                             <div className={`px-2 py-1 text-xs overflow-hidden flex items-center justify-between border-[1px] border-l-0 ${borderClass} font-medium ${bgClass} ${textClass} bg-opacity-70`} title={task.name}>
+                               <span className="truncate mr-1">{task.name}</span>
+                               {!isCompleted && (
+                                 <select
+                                   className="bg-transparent text-[10px] font-mono text-slate-600 focus:outline-none hover:bg-white/50 rounded cursor-pointer shrink-0"
+                                   value={task.progress || ''}
+                                   onChange={(e) => {
+                                     const val = e.target.value;
+                                     updateTaskProgress(task.id, val ? parseInt(val) : null);
+                                   }}
+                                 >
+                                   <option value="">-</option>
+                                   <option value="10">10%</option>
+                                   <option value="20">20%</option>
+                                   <option value="30">30%</option>
+                                   <option value="40">40%</option>
+                                   <option value="50">50%</option>
+                                   <option value="60">60%</option>
+                                   <option value="70">70%</option>
+                                   <option value="80">80%</option>
+                                   <option value="90">90%</option>
+                                 </select>
+                               )}
+                               {isCompleted && (
+                                 <span className="text-[10px] font-mono text-slate-600 shrink-0">100%</span>
+                               )}
                              </div>
                             <div className="px-1 py-1 text-xs text-center flex items-center justify-center bg-white min-w-0 overflow-hidden">
                               <input 
@@ -486,8 +527,14 @@ export function GanttChart() {
                                       title={`${task.name}: ${task.startDate} to ${endTargetStr}`}
                                       onClick={() => toggleTaskCompletion(task.id)}
                                     >
+                                      {!isCompleted && task.progress ? (
+                                        <div 
+                                          className="absolute left-0 top-0 bottom-0 bg-slate-400 z-0 pointer-events-none rounded-l-[1px]"
+                                          style={{ width: `${task.progress}%` }}
+                                        />
+                                      ) : null}
                                       {task.type === 'shipment' ? (
-                                         <div className="w-full flex justify-between px-1 h-full items-center relative overflow-hidden">
+                                         <div className="w-full flex justify-between px-1 h-full items-center relative z-10 overflow-hidden">
                                             <span>S</span>
                                             <div className="flex gap-1 items-center">
                                               <span>D</span>
@@ -503,7 +550,7 @@ export function GanttChart() {
                                             </div>
                                          </div>
                                       ) : (
-                                        <div className="w-full flex justify-end px-1 items-center relative h-full">
+                                        <div className="w-full flex justify-end px-1 items-center relative z-10 h-full">
                                           {isCompleted ? (
                                             <div className="flex bg-white/80 rounded-[2px] shadow-sm py-[1px] px-[2px] text-green-600">
                                               <Check className="w-[10px] h-[10px]" strokeWidth={3} />

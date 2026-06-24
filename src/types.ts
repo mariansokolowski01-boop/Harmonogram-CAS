@@ -7,6 +7,7 @@ export interface Task {
   endDate: string;
   correctionDate?: string;
   isCompleted?: boolean;
+  progress?: number | null;
   type: TaskType;
 }
 

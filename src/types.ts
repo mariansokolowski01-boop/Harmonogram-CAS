@@ -14,4 +14,5 @@ export interface Module {
   id: string;
   name: string;
   tasks: Task[];
+  notes?: string;
 }

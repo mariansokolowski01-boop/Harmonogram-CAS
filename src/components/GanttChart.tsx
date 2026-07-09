@@ -244,6 +244,7 @@ export function GanttChart() {
   };
 
   const [delayDays, setDelayDays] = useState<string>('');
+  const [isDelayApplied, setIsDelayApplied] = useState(false);
 
   const handleDelay = () => {
     const daysToShift = parseInt(delayDays, 10);
@@ -268,7 +269,7 @@ export function GanttChart() {
       })
     }));
     setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
-    setDelayDays('');
+    setIsDelayApplied(true);
   };
 
   const currentDateStr = formatISO(currentDate);
@@ -311,17 +312,18 @@ export function GanttChart() {
               <label className="text-[13px] font-semibold text-slate-700">Delay (days):</label>
               <input 
                 type="number" 
-                className="w-16 px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="w-16 px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm disabled:bg-slate-100 disabled:text-slate-400"
                 value={delayDays}
                 onChange={(e) => setDelayDays(e.target.value)}
                 placeholder="e.g. 14"
+                disabled={isDelayApplied}
               />
               <button 
                 onClick={handleDelay}
-                disabled={!delayDays || isNaN(parseInt(delayDays, 10))}
-                className="bg-slate-700 hover:bg-slate-800 disabled:bg-slate-300 text-white px-3 py-1 rounded text-[13px] font-medium transition-colors"
+                disabled={!delayDays || isNaN(parseInt(delayDays, 10)) || isDelayApplied}
+                className="bg-slate-700 hover:bg-slate-800 disabled:bg-slate-300 disabled:text-slate-500 text-white px-3 py-1 rounded text-[13px] font-medium transition-colors"
               >
-                Apply
+                {isDelayApplied ? 'Applied' : 'Apply'}
               </button>
            </div>
            
@@ -330,6 +332,8 @@ export function GanttChart() {
                onClick={() => {
                  if (window.confirm('Are you sure you want to restore factory settings? All changes will be lost.')) {
                    setDoc(doc(db, 'gantt', 'schedule'), { data: scheduleData });
+                   setDelayDays('');
+                   setIsDelayApplied(false);
                  }
                }}
                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-[13px] font-medium transition-colors"

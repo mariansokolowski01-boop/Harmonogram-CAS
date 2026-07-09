@@ -243,6 +243,34 @@ export function GanttChart() {
       setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
   };
 
+  const [delayDays, setDelayDays] = useState<string>('');
+
+  const handleDelay = () => {
+    const daysToShift = parseInt(delayDays, 10);
+    if (isNaN(daysToShift)) return;
+
+    const newData = data.map(m => ({
+      ...m,
+      tasks: m.tasks.map(t => {
+        let newStart = t.startDate;
+        let newEnd = t.endDate;
+        if (newStart) {
+          const d = parseISODate(newStart);
+          d.setDate(d.getDate() + daysToShift);
+          newStart = formatISO(d);
+        }
+        if (newEnd) {
+          const d = parseISODate(newEnd);
+          d.setDate(d.getDate() + daysToShift);
+          newEnd = formatISO(d);
+        }
+        return { ...t, startDate: newStart, endDate: newEnd };
+      })
+    }));
+    setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
+    setDelayDays('');
+  };
+
   const currentDateStr = formatISO(currentDate);
 
   const filterOptions = [
@@ -278,7 +306,24 @@ export function GanttChart() {
              </label>
            ))}
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-4">
+           <div className="flex items-center gap-2 border-l border-slate-300 pl-4">
+              <label className="text-[13px] font-semibold text-slate-700">Delay (days):</label>
+              <input 
+                type="number" 
+                className="w-16 px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                value={delayDays}
+                onChange={(e) => setDelayDays(e.target.value)}
+                placeholder="e.g. 14"
+              />
+              <button 
+                onClick={handleDelay}
+                disabled={!delayDays || isNaN(parseInt(delayDays, 10))}
+                className="bg-slate-700 hover:bg-slate-800 disabled:bg-slate-300 text-white px-3 py-1 rounded text-[13px] font-medium transition-colors"
+              >
+                Apply
+              </button>
+           </div>
            {activeFilters.size > 0 && (
               <button onClick={() => {
                 const next = new Set<string>();

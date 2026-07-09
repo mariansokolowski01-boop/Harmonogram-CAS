@@ -10,7 +10,8 @@ export const scheduleData: Module[] = [
       { id: 'm1-t3', name: 'Assembly', startDate: '2026-06-15', endDate: '2026-07-12', type: 'assembly' },
       { id: 'm1-t4', name: 'Welding', startDate: '2026-06-29', endDate: '2026-07-19', type: 'welding' },
       { id: 'm1-t5', name: 'Painting', startDate: '2026-07-20', endDate: '2026-08-16', type: 'painting' },
-      { id: 'm1-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-08-17', endDate: '2026-08-20', type: 'shipment' }
+      { id: 'm1-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-08-17', endDate: '2026-08-20', type: 'shipment' },
+      { id: 'm1-t7', name: 'Outfitting', startDate: '', endDate: '', type: 'outfitting' }
     ]
   },
   {
@@ -22,7 +23,8 @@ export const scheduleData: Module[] = [
       { id: 'm2-t3', name: 'Assembly', startDate: '2026-06-29', endDate: '2026-07-26', type: 'assembly' },
       { id: 'm2-t4', name: 'Welding', startDate: '2026-07-13', endDate: '2026-08-02', type: 'welding' },
       { id: 'm2-t5', name: 'Painting', startDate: '2026-08-03', endDate: '2026-08-30', type: 'painting' },
-      { id: 'm2-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-08-31', endDate: '2026-09-03', type: 'shipment' }
+      { id: 'm2-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-08-31', endDate: '2026-09-03', type: 'shipment' },
+      { id: 'm2-t7', name: 'Outfitting', startDate: '', endDate: '', type: 'outfitting' }
     ]
   },
   {
@@ -34,7 +36,8 @@ export const scheduleData: Module[] = [
       { id: 'm3-t3', name: 'Assembly', startDate: '2026-07-13', endDate: '2026-08-09', type: 'assembly' },
       { id: 'm3-t4', name: 'Welding', startDate: '2026-07-27', endDate: '2026-08-16', type: 'welding' },
       { id: 'm3-t5', name: 'Painting', startDate: '2026-08-17', endDate: '2026-09-14', type: 'painting' },
-      { id: 'm3-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-09-15', endDate: '2026-09-18', type: 'shipment' }
+      { id: 'm3-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-09-15', endDate: '2026-09-18', type: 'shipment' },
+      { id: 'm3-t7', name: 'Outfitting', startDate: '', endDate: '', type: 'outfitting' }
     ]
   },
   {
@@ -46,7 +49,8 @@ export const scheduleData: Module[] = [
       { id: 'm4-t3', name: 'Assembly', startDate: '2026-06-15', endDate: '2026-07-05', type: 'assembly' },
       { id: 'm4-t4', name: 'Welding', startDate: '2026-06-22', endDate: '2026-07-12', type: 'welding' },
       { id: 'm4-t5', name: 'Painting', startDate: '2026-07-13', endDate: '2026-07-23', type: 'painting' },
-      { id: 'm4-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-07-24', endDate: '2026-07-27', type: 'shipment' }
+      { id: 'm4-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-07-24', endDate: '2026-07-27', type: 'shipment' },
+      { id: 'm4-t7', name: 'Outfitting', startDate: '', endDate: '', type: 'outfitting' }
     ]
   },
   {
@@ -58,7 +62,8 @@ export const scheduleData: Module[] = [
       { id: 'm5-t3', name: 'Assembly', startDate: '2026-06-15', endDate: '2026-07-12', type: 'assembly' },
       { id: 'm5-t4', name: 'Welding', startDate: '2026-06-29', endDate: '2026-07-19', type: 'welding' },
       { id: 'm5-t5', name: 'Painting', startDate: '2026-07-20', endDate: '2026-07-31', type: 'painting' },
-      { id: 'm5-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-08-01', endDate: '2026-08-04', type: 'shipment' }
+      { id: 'm5-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-08-01', endDate: '2026-08-04', type: 'shipment' },
+      { id: 'm5-t7', name: 'Outfitting', startDate: '', endDate: '', type: 'outfitting' }
     ]
   },
   {
@@ -70,7 +75,8 @@ export const scheduleData: Module[] = [
       { id: 'm6-t3', name: 'Assembly', startDate: '2026-07-12', endDate: '2026-07-26', type: 'assembly' },
       { id: 'm6-t4', name: 'Welding', startDate: '2026-07-20', endDate: '2026-08-02', type: 'welding' },
       { id: 'm6-t5', name: 'Painting', startDate: '2026-08-03', endDate: '2026-08-16', type: 'painting' },
-      { id: 'm6-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-08-17', endDate: '2026-08-20', type: 'shipment' }
+      { id: 'm6-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-08-17', endDate: '2026-08-20', type: 'shipment' },
+      { id: 'm6-t7', name: 'Outfitting', startDate: '', endDate: '', type: 'outfitting' }
     ]
   },
   {
@@ -82,7 +88,8 @@ export const scheduleData: Module[] = [
       { id: 'm7-t3', name: 'Assembly', startDate: '2026-07-20', endDate: '2026-08-02', type: 'assembly' },
       { id: 'm7-t4', name: 'Welding', startDate: '2026-08-03', endDate: '2026-08-16', type: 'welding' },
       { id: 'm7-t5', name: 'Painting', startDate: '2026-08-17', endDate: '2026-09-01', type: 'painting' },
-      { id: 'm7-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-09-02', endDate: '2026-09-05', type: 'shipment' }
+      { id: 'm7-t6', name: 'S - Shipment / D - Delivery on-site', startDate: '2026-09-02', endDate: '2026-09-05', type: 'shipment' },
+      { id: 'm7-t7', name: 'Outfitting', startDate: '', endDate: '', type: 'outfitting' }
     ]
   }
 ];

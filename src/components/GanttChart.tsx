@@ -16,9 +16,6 @@ function formatISO(date: Date) {
 export function GanttChart() {
   const currentDate = new Date();
   const [data, setData] = useState(scheduleData);
-  const [celebration, setCelebration] = useState<{id: string, ts: number} | null>(null);
-  const [jokeMessage, setJokeMessage] = useState<string | null>(null);
-  const [rocketClicks, setRocketClicks] = useState<number[]>([]);
   
   const [activeFilters, setActiveFilters] = useState<Set<string>>(() => {
     try {
@@ -32,7 +29,48 @@ export function GanttChart() {
     const docRef = doc(db, 'gantt', 'schedule');
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        setData(docSnap.data().data);
+        const fbData = docSnap.data().data;
+        
+        let needsUpdate = false;
+        const typeOrder: Record<string, number> = {
+          'purchase': 1,
+          'cutting': 2,
+          'assembly': 3,
+          'welding': 4,
+          'outfitting': 5,
+          'painting': 6,
+          'shipment': 7
+        };
+
+        const migratedData = fbData.map((m: any) => {
+          let tasks = [...m.tasks];
+          if (!tasks.some((t: any) => t.type === 'outfitting')) {
+             needsUpdate = true;
+             tasks.push({
+                id: `${m.id}-t7`,
+                name: 'Outfitting',
+                startDate: '',
+                endDate: '',
+                type: 'outfitting'
+             });
+          }
+          
+          const originalOrder = tasks.map((t: any) => t.id).join(',');
+          tasks.sort((a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99));
+          const newOrder = tasks.map((t: any) => t.id).join(',');
+          
+          if (originalOrder !== newOrder) {
+             needsUpdate = true;
+          }
+          
+          return { ...m, tasks };
+        });
+
+        if (needsUpdate) {
+           setDoc(docRef, { data: migratedData });
+        } else {
+           setData(fbData);
+        }
       } else {
         setDoc(docRef, { data: scheduleData });
       }
@@ -154,23 +192,7 @@ export function GanttChart() {
           ...m,
           tasks: m.tasks.map(t => {
               if (t.id === taskId) {
-                  const newStatus = !t.isCompleted;
-                  if (newStatus) {
-                      setCelebration({ id: t.id, ts: Date.now() });
-                      setTimeout(() => setCelebration(null), 2000);
-                      
-                      const now = Date.now();
-                      setRocketClicks(prev => {
-                          const recent = prev.filter(time => now - time < 30000);
-                          const updated = [...recent, now];
-                          if (updated.length === 5) {
-                              setJokeMessage("🚀 Houston, mamy problem! Budżet na paliwo rakietowe wyczerpany. Wracamy do szlifowania stali! 🚀");
-                              setTimeout(() => setJokeMessage(null), 5000);
-                          }
-                          return updated;
-                      });
-                  }
-                  return { ...t, isCompleted: newStatus };
+                  return { ...t, isCompleted: !t.isCompleted };
               }
               return t;
           })
@@ -178,12 +200,25 @@ export function GanttChart() {
       setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
   };
   
-  const updateCorrectionDate = (taskId: string, newDate: string) => {
+  const updateStartDate = (taskId: string, newDate: string) => {
       const newData = data.map(m => ({
           ...m,
           tasks: m.tasks.map(t => {
               if (t.id === taskId) {
-                  return { ...t, correctionDate: newDate };
+                  return { ...t, startDate: newDate };
+              }
+              return t;
+          })
+      }));
+      setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
+  };
+
+  const updateEndDate = (taskId: string, newDate: string) => {
+      const newData = data.map(m => ({
+          ...m,
+          tasks: m.tasks.map(t => {
+              if (t.id === taskId) {
+                  return { ...t, endDate: newDate };
               }
               return t;
           })
@@ -211,10 +246,11 @@ export function GanttChart() {
   const currentDateStr = formatISO(currentDate);
 
   const filterOptions = [
-    { id: 'purchase', label: 'Steel purchase' },
-    { id: 'cutting', label: 'Steel cutting' },
+    { id: 'purchase', label: 'Steel Purchase' },
+    { id: 'cutting', label: 'Steel Cutting' },
     { id: 'assembly', label: 'Assembly' },
     { id: 'welding', label: 'Welding' },
+    { id: 'outfitting', label: 'Outfitting' },
     { id: 'painting', label: 'Painting' },
     { id: 'shipment', label: 'Shipment' }
   ];
@@ -232,19 +268,6 @@ export function GanttChart() {
 
   return (
     <div className="flex flex-col h-full w-full bg-white overflow-hidden text-sm relative">
-      <AnimatePresence>
-        {jokeMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -50, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: -20, x: '-50%' }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed top-20 left-1/2 bg-slate-800 text-white px-6 py-4 rounded-xl shadow-2xl z-[100] font-bold text-center border-2 border-slate-700 max-w-lg w-full flex items-center justify-center gap-3"
-          >
-            <span>{jokeMessage}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
       <div className="flex items-center gap-4 px-4 py-3 border-b border-slate-200 bg-slate-50 shrink-0">
         <span className="font-semibold text-slate-700">Filter View:</span>
         <div className="flex flex-wrap gap-3">
@@ -272,12 +295,16 @@ export function GanttChart() {
             <div className="flex flex-shrink-0 shadow-sm bg-white z-[60] sticky top-0 w-fit min-w-full">
               
               {/* Left Header - Sticky Left horizontally */}
-              <div className="w-[480px] flex-shrink-0 bg-white border-r border-b-2 border-slate-300 font-bold grid grid-cols-[140px_160px_90px_90px] divide-x divide-slate-300 sticky left-0 z-[70] shadow-[2px_0_10px_rgba(0,0,0,0.05)] h-[90px]">
+              <div className="w-[570px] flex-shrink-0 bg-white border-r border-b-2 border-slate-300 font-bold grid grid-cols-[140px_160px_90px_90px_90px] divide-x divide-slate-300 sticky left-0 z-[70] shadow-[2px_0_10px_rgba(0,0,0,0.05)] h-[90px]">
                <div className="p-2 flex items-center bg-slate-100">Task Group</div>
                <div className="p-2 flex items-center justify-center bg-slate-100">Stage Name</div>
                <div className="p-2 flex flex-col items-center justify-center bg-slate-100 text-center leading-tight">
-                 <span>Correction</span>
-                 <span className="text-[10px] font-normal text-slate-500">(Date)</span>
+                 <span>Start Date</span>
+                 <span className="text-[10px] font-normal text-slate-500">(YYYY-MM-DD)</span>
+               </div>
+               <div className="p-2 flex flex-col items-center justify-center bg-slate-100 text-center leading-tight">
+                 <span>End Date</span>
+                 <span className="text-[10px] font-normal text-slate-500">(YYYY-MM-DD)</span>
                </div>
                <div className="p-2 flex flex-col items-center justify-center bg-slate-100 text-center leading-tight">
                  <span>Status</span>
@@ -364,7 +391,7 @@ export function GanttChart() {
           <div className="flex flex-col relative bg-white pb-10 w-fit min-w-full">
             
              {/* Background Grid Lines & Current Day Marker */}
-             <div className="absolute top-0 bottom-0 pointer-events-none z-0" style={{ left: 480, width: totalWidth }}>
+             <div className="absolute top-0 bottom-0 pointer-events-none z-0" style={{ left: 570, width: totalWidth }}>
                 {currentDayInfo && !currentDayInfo.isCollapsed && (
                    <div 
                      className="absolute top-0 bottom-0 z-30 border-l-[2px] border-rose-500 border-dashed pointer-events-none"
@@ -392,7 +419,7 @@ export function GanttChart() {
                   <div key={module.id} className="flex border-b-[4px] border-slate-200 last:border-b-0 w-full relative">
                     
                     {/* Left Part - Sticky Left horizontally */}
-                    <div className="w-[480px] flex-shrink-0 bg-white border-r border-slate-300 sticky left-0 z-[50] shadow-[2px_0_10px_rgba(0,0,0,0.05)] flex">
+                    <div className="w-[570px] flex-shrink-0 bg-white border-r border-slate-300 sticky left-0 z-[50] shadow-[2px_0_10px_rgba(0,0,0,0.05)] flex">
                       <div className="w-[140px] px-2 py-2 font-bold flex items-center bg-white border-r text-[12px] leading-tight flex-shrink-0">
                         {module.name}
                       </div>
@@ -414,10 +441,11 @@ export function GanttChart() {
                              if (task.type === 'welding') { bgClass = 'bg-[#f4ce84]'; borderClass = 'border-[#e0b060]'; textClass = 'text-slate-900'; }
                              if (task.type === 'painting') { bgClass = 'bg-[#9bc2e6]'; borderClass = 'border-[#8eb2d4]'; textClass = 'text-slate-900'; }
                              if (task.type === 'shipment') { bgClass = 'bg-[#a9d08e]'; borderClass = 'border-[#96ba7f]'; textClass = 'text-slate-900'; }
+                             if (task.type === 'outfitting') { bgClass = 'bg-[#d8b4e2]'; borderClass = 'border-[#c094cd]'; textClass = 'text-slate-900'; }
                            }
      
                            return (
-                           <div key={task.id} className="grid grid-cols-[160px_90px_90px] divide-x divide-slate-200 h-[30px] hover:bg-slate-50 transition-colors flex-shrink-0">
+                           <div key={task.id} className="grid grid-cols-[160px_90px_90px_90px] divide-x divide-slate-200 h-[30px] hover:bg-slate-50 transition-colors flex-shrink-0">
                              <div className={`px-2 py-1 text-xs overflow-hidden flex items-center justify-between border-[1px] border-l-0 ${borderClass} font-medium ${bgClass} ${textClass} bg-opacity-70`} title={task.name}>
                                <span className="truncate mr-1">{task.name}</span>
                                {!isCompleted && (
@@ -449,8 +477,17 @@ export function GanttChart() {
                               <input 
                                 type="date" 
                                 className="w-full min-w-0 max-w-full text-center bg-transparent focus:outline-none font-mono text-[10px] text-slate-600 hover:bg-slate-100 p-1 rounded" 
-                                value={task.correctionDate || ''}
-                                onChange={(e) => updateCorrectionDate(task.id, e.target.value)}
+                                value={task.startDate || ''}
+                                onChange={(e) => updateStartDate(task.id, e.target.value)}
+                                placeholder="Y-M-D"
+                              />
+                            </div>
+                            <div className="px-1 py-1 text-xs text-center flex items-center justify-center bg-white min-w-0 overflow-hidden">
+                              <input 
+                                type="date" 
+                                className="w-full min-w-0 max-w-full text-center bg-transparent focus:outline-none font-mono text-[10px] text-slate-600 hover:bg-slate-100 p-1 rounded" 
+                                value={task.endDate || ''}
+                                onChange={(e) => updateEndDate(task.id, e.target.value)}
                                 placeholder="Y-M-D"
                               />
                             </div>
@@ -475,7 +512,7 @@ export function GanttChart() {
                     <div className="relative flex flex-col justify-start bg-transparent flex-shrink-0 divide-y divide-slate-200" style={{ width: totalWidth }}>
                         {module.tasks.map((task) => {
                             const tStart = parseISODate(task.startDate);
-                            const endTargetStr = task.correctionDate || task.endDate;
+                            const endTargetStr = task.endDate;
                             const tEnd = parseISODate(endTargetStr);
                             
                             const s = tStart <= tEnd ? tStart : tEnd;
@@ -512,6 +549,7 @@ export function GanttChart() {
                               if (task.type === 'welding') { bgClass = 'bg-[#f4ce84]'; borderClass = 'border-[#e0b060]'; textClass = 'text-slate-900'; }
                               if (task.type === 'painting') { bgClass = 'bg-[#9bc2e6]'; borderClass = 'border-[#8eb2d4]'; textClass = 'text-slate-900'; }
                               if (task.type === 'shipment') { bgClass = 'bg-[#a9d08e]'; borderClass = 'border-[#96ba7f]'; textClass = 'text-slate-900'; }
+                              if (task.type === 'outfitting') { bgClass = 'bg-[#d8b4e2]'; borderClass = 'border-[#c094cd]'; textClass = 'text-slate-900'; }
                             }
 
                             // Calculate Countdown Logic from real end target
@@ -562,21 +600,6 @@ export function GanttChart() {
                                           )}
                                         </div>
                                       )}
-                                      
-                                      <AnimatePresence>
-                                         {celebration?.id === task.id && (
-                                           <motion.div
-                                              key={celebration.ts}
-                                              initial={{ opacity: 1, y: 0, x: 0, scale: 0.5 }}
-                                              animate={{ opacity: [1, 1, 0], y: [0, -50, -100], x: [0, 30, 60], scale: [0.8, 1.5, 1.5] }}
-                                              exit={{ opacity: 0 }}
-                                              transition={{ duration: 1.2, ease: "easeOut" }}
-                                              className="absolute right-[-10px] top-[-15px] text-3xl pointer-events-none z-50 drop-shadow-md"
-                                           >
-                                              🚀
-                                           </motion.div>
-                                         )}
-                                      </AnimatePresence>
                                     </div>
                               </div>
                             );
@@ -589,9 +612,9 @@ export function GanttChart() {
 
              {/* Fill empty space with left grid lines */}
              <div className="flex-1 w-full flex bg-transparent flex-shrink-0 z-0 relative">
-                <div className="w-[480px] sticky left-0 border-r border-slate-300 z-50 bg-white" style={{ backgroundImage: 'linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)', backgroundSize: '100% 30px' }}>
-                   <div className="w-full h-full grid grid-cols-[140px_160px_90px_90px] divide-x divide-slate-200 pointer-events-none">
-                      <div /><div /><div /><div />
+                <div className="w-[570px] sticky left-0 border-r border-slate-300 z-50 bg-white" style={{ backgroundImage: 'linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)', backgroundSize: '100% 30px' }}>
+                   <div className="w-full h-full grid grid-cols-[140px_160px_90px_90px_90px] divide-x divide-slate-200 pointer-events-none">
+                      <div /><div /><div /><div /><div />
                    </div>
                 </div>
              </div>

@@ -13,6 +13,7 @@ export function getDaysBetween(start: Date, end: Date): Date[] {
 }
 
 export function parseISODate(iso: string): Date {
+  if (!iso) return new Date(0);
   const [year, month, day] = iso.split('-').map(Number);
   return new Date(year, month - 1, day);
 }

@@ -330,11 +330,9 @@ export function GanttChart() {
            <div className="flex items-center border-l border-slate-300 pl-4 ml-2">
              <button
                onClick={() => {
-                 if (window.confirm('Are you sure you want to restore factory settings? All changes will be lost.')) {
-                   setDoc(doc(db, 'gantt', 'schedule'), { data: scheduleData });
-                   setDelayDays('');
-                   setIsDelayApplied(false);
-                 }
+                 setDoc(doc(db, 'gantt', 'schedule'), { data: scheduleData });
+                 setDelayDays('');
+                 setIsDelayApplied(false);
                }}
                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-[13px] font-medium transition-colors"
              >

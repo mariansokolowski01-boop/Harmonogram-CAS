@@ -337,14 +337,6 @@ export function GanttChart() {
                Factory Reset
              </button>
            </div>
-
-           {activeFilters.size > 0 && (
-              <button onClick={() => {
-                const next = new Set<string>();
-                setActiveFilters(next);
-                localStorage.setItem('gantt_filters', JSON.stringify(Array.from(next)));
-              }} className="text-xs text-slate-500 hover:text-slate-700 underline">Clear Filters</button>
-           )}
         </div>
       </div>
       <div className="flex-1 overflow-auto focus:outline-none custom-scrollbar" tabIndex={0}>

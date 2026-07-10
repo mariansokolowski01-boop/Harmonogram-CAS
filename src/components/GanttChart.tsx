@@ -205,7 +205,13 @@ export function GanttChart() {
           ...m,
           tasks: m.tasks.map(t => {
               if (t.id === taskId) {
-                  return { ...t, startDate: newDate };
+                  let dateToSet = newDate;
+                  if (!dateToSet) {
+                      const originalModule = scheduleData.find(om => om.id === m.id);
+                      const originalTask = originalModule?.tasks.find(ot => ot.id === t.id);
+                      if (originalTask) dateToSet = originalTask.startDate;
+                  }
+                  return { ...t, startDate: dateToSet };
               }
               return t;
           })
@@ -218,7 +224,13 @@ export function GanttChart() {
           ...m,
           tasks: m.tasks.map(t => {
               if (t.id === taskId) {
-                  return { ...t, endDate: newDate };
+                  let dateToSet = newDate;
+                  if (!dateToSet) {
+                      const originalModule = scheduleData.find(om => om.id === m.id);
+                      const originalTask = originalModule?.tasks.find(ot => ot.id === t.id);
+                      if (originalTask) dateToSet = originalTask.endDate;
+                  }
+                  return { ...t, endDate: dateToSet };
               }
               return t;
           })
@@ -292,8 +304,12 @@ export function GanttChart() {
   const resetPump = () => {
     const newData = data.map(m => {
       if (!m.name.toLowerCase().includes('pump')) return m;
-      const originalModule = scheduleData.find(om => om.id === m.id);
-      return originalModule ? { ...originalModule, notes: m.notes } : m;
+      const originalModule = JSON.parse(JSON.stringify(scheduleData.find(om => om.id === m.id)));
+      if (originalModule) {
+         if (m.notes !== undefined) originalModule.notes = m.notes;
+         return originalModule;
+      }
+      return m;
     });
     setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
     setPumpDelayDays('');
@@ -331,8 +347,12 @@ export function GanttChart() {
   const resetCorner = () => {
     const newData = data.map(m => {
       if (!m.name.toLowerCase().includes('corner')) return m;
-      const originalModule = scheduleData.find(om => om.id === m.id);
-      return originalModule ? { ...originalModule, notes: m.notes } : m;
+      const originalModule = JSON.parse(JSON.stringify(scheduleData.find(om => om.id === m.id)));
+      if (originalModule) {
+         if (m.notes !== undefined) originalModule.notes = m.notes;
+         return originalModule;
+      }
+      return m;
     });
     setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
     setCornerDelayDays('');

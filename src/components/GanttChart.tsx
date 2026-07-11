@@ -269,13 +269,25 @@ export function GanttChart() {
   const [editingNotesModuleId, setEditingNotesModuleId] = useState<string | null>(null);
 
   const factoryReset = () => {
-    // Merge existing notes with hardcoded scheduleData
-    const newData = scheduleData.map(originalModule => {
-       const currentModule = data.find(m => m.id === originalModule.id);
-       if (currentModule && currentModule.notes !== undefined) {
-          return { ...originalModule, notes: currentModule.notes };
+    const newData = data.map(currentModule => {
+       const originalModule = scheduleData.find(m => m.id === currentModule.id);
+       if (originalModule) {
+          return {
+             ...currentModule,
+             tasks: currentModule.tasks.map(currentTask => {
+                const originalTask = originalModule.tasks.find(t => t.id === currentTask.id);
+                if (originalTask) {
+                   return {
+                      ...currentTask,
+                      startDate: originalTask.startDate,
+                      endDate: originalTask.endDate
+                   };
+                }
+                return { ...currentTask, startDate: '', endDate: '' };
+             })
+          };
        }
-       return originalModule;
+       return currentModule;
     });
     setDoc(doc(db, 'gantt', 'schedule'), { data: newData });
   };

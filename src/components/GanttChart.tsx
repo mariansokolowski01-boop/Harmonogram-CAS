@@ -438,7 +438,7 @@ export function GanttChart() {
           <div className="flex flex-col relative bg-white pb-10 w-fit min-w-full">
             
              {/* Background Grid Lines & Current Day Marker */}
-             <div className="absolute top-0 bottom-0 pointer-events-none z-0" style={{ left: 570, width: totalWidth }}>
+             <div className="absolute top-0 bottom-0 pointer-events-none z-0" style={{ left: showDatesColumn ? 570 : 390, width: totalWidth }}>
                 {currentDayInfo && !currentDayInfo.isCollapsed && (
                    <div 
                      className="absolute top-0 bottom-0 z-30 border-l-[2px] border-rose-500 border-dashed pointer-events-none"

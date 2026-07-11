@@ -82,12 +82,9 @@ export function GanttChart() {
     return () => unsubscribe();
   }, []);
   const [hiddenWeeks, setHiddenWeeks] = useState<Set<string>>(() => {
-    try {
-      const stored = localStorage.getItem('gantt_hidden_weeks');
-      if (stored) return new Set(JSON.parse(stored));
-    } catch(e) {}
-    return new Set();
+    return new Set<string>();
   });
+  const [showDatesColumn, setShowDatesColumn] = useState<boolean>(true);
   
   const timelineStart = new Date('2026-05-18');
   const timelineEnd = new Date('2026-10-31');
@@ -319,7 +316,13 @@ export function GanttChart() {
            ))}
         </div>
         <div className="ml-auto flex items-center gap-4">
-           <div className="flex items-center border-l border-slate-300 pl-4 ml-2">
+           <div className="flex items-center border-l border-slate-300 pl-4">
+             <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 hover:text-slate-900 transition-colors">
+               <input type="checkbox" checked={showDatesColumn} onChange={() => setShowDatesColumn(v => !v)} className="rounded border-slate-300 text-indigo-500 focus:ring-indigo-500" />
+               <span className="text-[13px] font-medium">Show Start/End Dates</span>
+             </label>
+           </div>
+           <div className="flex items-center border-l border-slate-300 pl-4">
              <button
                onClick={factoryReset}
                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-[13px] font-medium transition-colors"
@@ -337,15 +340,19 @@ export function GanttChart() {
             <div className="flex flex-shrink-0 shadow-sm bg-white z-[60] sticky top-0 w-fit min-w-full">
               
               {/* Left Header - Sticky Left horizontally */}
-              <div className="w-[570px] flex-shrink-0 bg-white border-r border-b-2 border-slate-300 font-bold grid grid-cols-[140px_160px_90px_90px_90px] divide-x divide-slate-300 sticky left-0 z-[70] shadow-[2px_0_10px_rgba(0,0,0,0.05)] h-[90px]">
+              <div className={`${showDatesColumn ? 'w-[570px]' : 'w-[390px]'} flex-shrink-0 bg-white border-r border-b-2 border-slate-300 font-bold grid ${showDatesColumn ? 'grid-cols-[140px_160px_90px_90px_90px]' : 'grid-cols-[140px_160px_90px]'} divide-x divide-slate-300 sticky left-0 z-[70] shadow-[2px_0_10px_rgba(0,0,0,0.05)] h-[90px]`}>
                <div className="p-2 flex items-center bg-slate-100">Task Group</div>
                <div className="p-2 flex items-center justify-center bg-slate-100">Stage Name</div>
-               <div className="p-2 flex flex-col items-center justify-center bg-slate-100 text-center leading-tight">
-                 <span>Start Date</span>
-               </div>
-               <div className="p-2 flex flex-col items-center justify-center bg-slate-100 text-center leading-tight">
-                 <span>End Date</span>
-               </div>
+               {showDatesColumn && (
+                 <>
+                   <div className="p-2 flex flex-col items-center justify-center bg-slate-100 text-center leading-tight">
+                     <span>Start Date</span>
+                   </div>
+                   <div className="p-2 flex flex-col items-center justify-center bg-slate-100 text-center leading-tight">
+                     <span>End Date</span>
+                   </div>
+                 </>
+               )}
                <div className="p-2 flex flex-col items-center justify-center bg-slate-100 text-center leading-tight">
                  <span>Status</span>
                  <span className="text-[10px] font-normal text-slate-500">(Check)</span>
@@ -459,7 +466,7 @@ export function GanttChart() {
                   <div key={module.id} className="flex border-b-[4px] border-slate-200 last:border-b-0 w-full relative">
                     
                     {/* Left Part - Sticky Left horizontally */}
-                    <div className="w-[570px] flex-shrink-0 bg-white border-r border-slate-300 sticky left-0 z-[50] shadow-[2px_0_10px_rgba(0,0,0,0.05)] flex">
+                    <div className={`${showDatesColumn ? 'w-[570px]' : 'w-[390px]'} flex-shrink-0 bg-white border-r border-slate-300 sticky left-0 z-[50] shadow-[2px_0_10px_rgba(0,0,0,0.05)] flex`}>
                       <div className="w-[140px] px-2 py-2 flex flex-col items-start bg-slate-50 border-r flex-shrink-0">
                         <div className="font-bold text-[12px] leading-tight mb-2 text-slate-800">
                           {module.name}
@@ -494,7 +501,7 @@ export function GanttChart() {
                            }
      
                            return (
-                           <div key={task.id} className="grid grid-cols-[160px_90px_90px_90px] divide-x divide-slate-200 h-[30px] hover:bg-slate-50 transition-colors flex-shrink-0">
+                           <div key={task.id} className={`grid ${showDatesColumn ? 'grid-cols-[160px_90px_90px_90px]' : 'grid-cols-[160px_90px]'} divide-x divide-slate-200 h-[30px] hover:bg-slate-50 transition-colors flex-shrink-0`}>
                              <div className={`px-2 py-1 text-xs overflow-hidden flex items-center justify-between border-[1px] border-l-0 ${borderClass} font-medium ${bgClass} ${textClass} bg-opacity-70`} title={task.name}>
                                <span className="truncate mr-1">{task.name}</span>
                                {!isCompleted && (
@@ -522,24 +529,28 @@ export function GanttChart() {
                                  <span className="text-[10px] font-mono text-slate-600 shrink-0">100%</span>
                                )}
                              </div>
-                            <div className="px-1 py-1 text-xs text-center flex items-center justify-center bg-white min-w-0 overflow-hidden">
-                              <input 
-                                type="date" 
-                                className="w-full min-w-0 max-w-full text-center bg-transparent focus:outline-none font-mono text-[10px] text-slate-600 hover:bg-slate-100 p-1 rounded" 
-                                value={task.startDate || ''}
-                                onChange={(e) => updateStartDate(task.id, e.target.value)}
-                                placeholder="Y-M-D"
-                              />
-                            </div>
-                            <div className="px-1 py-1 text-xs text-center flex items-center justify-center bg-white min-w-0 overflow-hidden">
-                              <input 
-                                type="date" 
-                                className="w-full min-w-0 max-w-full text-center bg-transparent focus:outline-none font-mono text-[10px] text-slate-600 hover:bg-slate-100 p-1 rounded" 
-                                value={task.endDate || ''}
-                                onChange={(e) => updateEndDate(task.id, e.target.value)}
-                                placeholder="Y-M-D"
-                              />
-                            </div>
+                            {showDatesColumn && (
+                              <>
+                                <div className="px-1 py-1 text-xs text-center flex items-center justify-center bg-white min-w-0 overflow-hidden">
+                                  <input 
+                                    type="date" 
+                                    className="w-full min-w-0 max-w-full text-center bg-transparent focus:outline-none font-mono text-[10px] text-slate-600 hover:bg-slate-100 p-1 rounded" 
+                                    value={task.startDate || ''}
+                                    onChange={(e) => updateStartDate(task.id, e.target.value)}
+                                    placeholder="Y-M-D"
+                                  />
+                                </div>
+                                <div className="px-1 py-1 text-xs text-center flex items-center justify-center bg-white min-w-0 overflow-hidden">
+                                  <input 
+                                    type="date" 
+                                    className="w-full min-w-0 max-w-full text-center bg-transparent focus:outline-none font-mono text-[10px] text-slate-600 hover:bg-slate-100 p-1 rounded" 
+                                    value={task.endDate || ''}
+                                    onChange={(e) => updateEndDate(task.id, e.target.value)}
+                                    placeholder="Y-M-D"
+                                  />
+                                </div>
+                              </>
+                            )}
                             <div className="px-2 py-1 text-xs text-center flex items-center justify-center bg-white">
                                <button 
                                  onClick={() => toggleTaskCompletion(task.id)}
@@ -661,9 +672,9 @@ export function GanttChart() {
 
              {/* Fill empty space with left grid lines */}
              <div className="flex-1 w-full flex bg-transparent flex-shrink-0 z-0 relative">
-                <div className="w-[570px] sticky left-0 border-r border-slate-300 z-50 bg-white" style={{ backgroundImage: 'linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)', backgroundSize: '100% 30px' }}>
-                   <div className="w-full h-full grid grid-cols-[140px_160px_90px_90px_90px] divide-x divide-slate-200 pointer-events-none">
-                      <div /><div /><div /><div /><div />
+                <div className={`${showDatesColumn ? 'w-[570px]' : 'w-[390px]'} sticky left-0 border-r border-slate-300 z-50 bg-white`} style={{ backgroundImage: 'linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)', backgroundSize: '100% 30px' }}>
+                   <div className={`w-full h-full grid ${showDatesColumn ? 'grid-cols-[140px_160px_90px_90px_90px]' : 'grid-cols-[140px_160px_90px]'} divide-x divide-slate-200 pointer-events-none`}>
+                      <div /><div />{showDatesColumn && <><div /><div /></>}<div />
                    </div>
                 </div>
              </div>

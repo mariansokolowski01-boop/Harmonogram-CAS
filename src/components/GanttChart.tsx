@@ -54,6 +54,10 @@ export function GanttChart() {
                 type: 'outfitting'
              });
           }
+          if (m.name.toLowerCase().includes('corner') && tasks.some((t: any) => t.type === 'outfitting')) {
+             needsUpdate = true;
+             tasks = tasks.filter((t: any) => t.type !== 'outfitting');
+          }
           
           const originalOrder = tasks.map((t: any) => t.id).join(',');
           tasks.sort((a, b) => (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99));

@@ -1,6 +1,4 @@
-import { Module } from './types';
-
-export const scheduleData: Module[] = [
+[
   {
     "id": "m1",
     "tasks": [
@@ -199,6 +197,13 @@ export const scheduleData: Module[] = [
         "name": "Welding"
       },
       {
+        "type": "outfitting",
+        "startDate": "",
+        "id": "m4-t7",
+        "endDate": "",
+        "name": "Outfitting"
+      },
+      {
         "type": "painting",
         "startDate": "2026-07-23",
         "name": "Painting",
@@ -247,6 +252,13 @@ export const scheduleData: Module[] = [
         "type": "welding"
       },
       {
+        "type": "outfitting",
+        "startDate": "",
+        "endDate": "",
+        "name": "Outfitting",
+        "id": "m5-t7"
+      },
+      {
         "endDate": "2026-08-16",
         "name": "Painting",
         "id": "m5-t5",
@@ -292,6 +304,13 @@ export const scheduleData: Module[] = [
         "endDate": "2026-08-15",
         "name": "Welding",
         "id": "m6-t4"
+      },
+      {
+        "id": "m6-t7",
+        "endDate": "",
+        "name": "Outfitting",
+        "type": "outfitting",
+        "startDate": ""
       },
       {
         "id": "m6-t5",
@@ -342,6 +361,13 @@ export const scheduleData: Module[] = [
         "name": "Welding"
       },
       {
+        "startDate": "",
+        "type": "outfitting",
+        "name": "Outfitting",
+        "endDate": "",
+        "id": "m7-t7"
+      },
+      {
         "id": "m7-t5",
         "endDate": "2026-09-12",
         "name": "Painting",
@@ -358,4 +384,4 @@ export const scheduleData: Module[] = [
     ],
     "name": "Corner Bracket No.9, 10 (2pcs)"
   }
-];
+]
